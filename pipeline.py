@@ -3,6 +3,8 @@ import tempfile
 import pandas as pd
 import streamlit as st
 from typing import List, Callable, Optional
+from ui_helpers import confirmation_modal, show_csv
+
 
 from oci_helpers import (
     download_blob,
@@ -164,3 +166,34 @@ def run_emotion_pipeline_for_files(
 
     # Cleanup processed WAV files from cloud
     delete_objects(object_names)
+
+
+def show_progress_ui() -> Callable[[float], None]:
+    """Returns a callback function that updates a Streamlit progress bar."""
+
+    progress_bar = st.progress(0)
+
+    def progress_callback(progress: float):
+        progress_bar.progress(min(max(progress, 0.0), 1.0))  # Clamp progress between 0 and 1
+
+    return progress_callback
+
+
+# Example usage in Streamlit app:
+if __name__ == "__main__":
+    st.title("Emotion Analysis Pipeline")
+    uploaded_files = st.file_uploader("Upload WAV files", accept_multiple_files=True, type=["wav"])
+
+    if uploaded_files:
+        # Save uploaded files temporarily and get their names
+        temp_dir = tempfile.mkdtemp(prefix="uploaded_wavs_")
+        object_names = []
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            object_names.append(file_path)
+
+        progress_cb = show_progress_ui()
+        run_emotion_pipeline_for_files(object_names=object_names, progress_cb=progress_cb)
+        st.success("Processing complete!")

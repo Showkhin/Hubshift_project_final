@@ -1,4 +1,6 @@
 import torch
+import os
+
 import whisper
 from transformers import pipeline
 from speechbrain.inference.interfaces import foreign_class
